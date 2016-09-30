@@ -1,0 +1,14 @@
+{
+  "name": "temperatures",
+  "version": "0.0.1",
+  "scripts": {
+    "start": "node ./src/server.js"
+  },
+  "author": "Nicholas Husher <nhusher@gmail.com>",
+  "dependencies": {
+    "compression": "^1.6.2",
+    "express": "^4.14.0",
+    "geojson-vt": "^2.4.0",
+    "vt-pbf": "^2.1.2"
+  }
+}

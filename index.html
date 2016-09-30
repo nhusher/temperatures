@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'/>
+  <title>Show me some temps</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no'/>
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.24.0/mapbox-gl.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.24.0/mapbox-gl.css' rel='stylesheet'/>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    #avg-temp {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      font-family: sans-serif;
+      font-weight: bold;
+      color: #444;
+      text-align: center;
+      background: rgba(255,255,255,0.8);
+      border-top: 1px solid white;
+    }
+    #avg-temp:empty {
+      display: none;
+    }
+
+    .boxdraw {
+      background: rgba(255,255,255,0.25);
+      border: 1px solid white;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="avg-temp">
+  Shift + Drag a rectangle to get average temps
+</div>
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1Ijoibmh1c2hlciIsImEiOiJjaXRvZ25uOHIwMzl4M3BzYm5ydW5qaHdqIn0.XHjTTDiJeW13LUBmMYileg';
+  var map = new mapboxgl.Map({
+    container: 'map',
+    style:     'mapbox://styles/nhusher/citohgha9004x2it8nm0ogdxf',
+    center:    [-98.58, 39.83],
+    zoom:      5,
+    maxZoom:   8,
+    indexMaxPoints: 10000
+  })
+
+  map.on('load', function () {
+    // Disable default box zooming.
+    map.boxZoom.disable();
+
+    // Configure the temperatures data source, pointing it at the local tile server and setting
+    // up the rendering configuration:
+    map.addSource('temperatures', {
+      type:  'vector',
+      tiles: [window.location.protocol + '//' + window.location.host + '/tile/{z}/{x}/{y}.mvt']
+    })
+    map.addLayer({
+      'id':           'temperatures',
+      'type':         'circle',
+      'source':       'temperatures',
+      'source-layer': 'temperatures',
+      'paint':        {
+        'circle-radius': {
+          'base': 1,
+          'stops': [
+              [5,2],
+              [10,4]
+          ]
+        },
+        'circle-color':  {
+          'property': 'value',
+          'stops':    [
+            [-25, '#27B6F2'],
+            [25, '#F1594A']
+          ]
+        }
+      }
+    })
+
+    // The following is adapted from
+    // <https://www.mapbox.com/mapbox-gl-js/example/using-box-queryrenderedfeatures/>
+    var canvas = map.getCanvasContainer()
+    var start
+    var current
+    var box
+
+    canvas.addEventListener('mousedown', mouseDown, true);
+
+    function mousePos(e) {
+      var rect = canvas.getBoundingClientRect();
+      return new mapboxgl.Point(
+          e.clientX - rect.left - canvas.clientLeft,
+          e.clientY - rect.top - canvas.clientTop
+      );
+    }
+
+    // Start dragging!
+    function mouseDown(e) {
+      if (!(e.shiftKey && e.button === 0)) return;
+
+      map.dragPan.disable();
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      start = mousePos(e);
+    }
+
+    // Any time the mouse moves, update the size of the rectangular box that represents the bounds
+    // they have selected:
+    function onMouseMove(e) {
+      current = mousePos(e);
+
+      if (!box) {
+        box = document.createElement('div');
+        box.classList.add('boxdraw');
+        canvas.appendChild(box);
+      }
+
+      var minX = Math.min(start.x, current.x),
+          maxX = Math.max(start.x, current.x),
+          minY = Math.min(start.y, current.y),
+          maxY = Math.max(start.y, current.y);
+
+      var pos = 'translate(' + minX + 'px,' + minY + 'px)';
+      box.style.transform = pos;
+      box.style.WebkitTransform = pos;
+      box.style.width = maxX - minX + 'px';
+      box.style.height = maxY - minY + 'px';
+    }
+
+    function onMouseUp(e) {
+      finish([start, mousePos(e)]);
+    }
+
+    // After the user has finished drawing their box, clean up the box and then request the
+    // average temperature inside those bounds:
+    function finish(bbox) {
+      // Remove these events now that finish has been called.
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+
+      if (box) {
+        box.parentNode.removeChild(box);
+        box = null;
+      }
+
+      if (bbox) {
+        var coord0 = map.unproject([bbox[0].x, bbox[0].y]),
+            coord1 = map.unproject([bbox[1].x, bbox[1].y]),
+            url = [
+                '/avg-temp',
+                coord0.lat,
+                coord0.lng,
+                coord1.lat,
+                coord1.lng
+            ].join('/')
+
+        var xhr = new XMLHttpRequest()
+        xhr.open('GET', url, true)
+        xhr.onload = function() {
+          document.getElementById('avg-temp').innerHTML = [
+            'Average temperature:',
+            JSON.parse(xhr.response).averageTemperature.toFixed(2),
+            'C'
+          ].join(' ')
+        }
+        xhr.send()
+      }
+
+      map.dragPan.enable();
+    }
+  })
+</script>
+</body>
+</html>
