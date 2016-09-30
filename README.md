@@ -2,13 +2,6 @@
 
 ![screenshot](./screenshot.png)
 
-First, and possibly the most important thing: this isn't in Scala.
-
-I don't know Scala and I'm primarily a UI engineer. I think it makes more sense to show off the
-kinds of user interfaces I can build that can show the data to a human, rather than implement an
-interface that only a computer can reasonably consume. I _did_ implement the two requested methods
-as pure functions in the `utils.js` source file. They are called out with special-looking comments.
-
 # Setup
 
 You'll need a recent version of a good browser (tested in Chrome, FF, and Safari). You will need an
@@ -42,13 +35,3 @@ The second endpoint fetches the average temperature for a given set of lat/lng b
 the `averageTemperature` function and returns it to the UI. It can reduce over the entire nation
 of data points in less than a second, which seems like satisfactory performance.
 
-# Miscellaneous Commentary
-
-While I don't have any problem learning Scala per se, I'm uncomfortable using a language I am
-completely unfamiliar with as a sounding board with which to broadcast my skills. I wanted the
-challenge to be fun and produce something compelling and useful as a result, which is far, far
-outside the original problem definition. 
-
-The application I wrote has some problems, mostly related to the sad state of GIS tools: the
-library that translates temperature data into MVT has some sort of memory leak that will
-occasionally crash node. With more time, I would have liked to have fixed that. 
